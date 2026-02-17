@@ -3,9 +3,9 @@ import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import cors from 'cors';
 
-import authRoutes from '../routes/auth.js';
-import notesRoutes from '../routes/notes.js';
-import { authenticateUser } from '../middleware/auth.js';
+import authRoutes from './routes/auth.js';
+import notesRoutes from './routes/notes.js';
+import { authenticateUser } from './middleware/auth.js';
 
 dotenv.config();
 
