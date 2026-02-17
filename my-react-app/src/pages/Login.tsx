@@ -24,7 +24,7 @@ const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
       if (authError) throw authError;
 
       if (data.session) {
-        // Corrected Fetch Syntax: removed extra {} and ensured 127.0.0.1 for local connection
+      
         const response = await fetch('http://127.0.0.1:5001/api/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -62,7 +62,7 @@ const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
           )}
 
           <div>
-            {/* Added htmlFor and id to associate label with input */}
+           
             <label htmlFor="login-email" className="block text-sm font-black text-black mb-1 uppercase">
               Email Address
             </label>

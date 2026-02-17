@@ -3,7 +3,7 @@ const router = express.Router();
 
 // 1. GET ALL NOTES (Authenticated)
 router.get('/', async (req, res) => {
-  // Use req.supabase, NOT the global supabase instance
+ 
   const { data, error } = await req.supabase
     .from('notes')
     .select('*');
@@ -20,7 +20,6 @@ router.post('/', async (req, res) => {
   try {
     const { data, error } = await req.supabase
       .from('notes')
-// ... rest of code
       .insert([{ 
         content, 
         user_id: req.user.id 
@@ -37,8 +36,6 @@ router.post('/', async (req, res) => {
 // 3. DELETE A NOTE
 router.delete('/:id', async (req, res) => {
   try {
-    // RLS in Supabase ensures a user can only delete a note 
-    // if the user_id matches their own ID.
     const { error } = await req.supabase
       .from('notes')
       .delete()

@@ -8,7 +8,7 @@ const Navbar = () => {
     const fetchProfile = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        // Removed 'error' as it was unused
+       
         const { data } = await supabase
           .from('profiles')
           .select('display_name')

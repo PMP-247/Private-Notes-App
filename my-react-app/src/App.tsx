@@ -53,10 +53,9 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
 
 
 function App() {
-  // Remove the variable name entirely to satisfy strict ESLint rules
+  
   const handleAuthSuccess = () => { 
-    console.log("Authentication successful");
-    // Hard refresh ensures the session cookie is picked up by the browser
+  
     window.location.href = "/notes";
   };
   return (

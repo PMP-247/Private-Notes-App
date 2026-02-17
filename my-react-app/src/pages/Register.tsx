@@ -32,7 +32,7 @@ const Register = () => {
 
       if (signUpError) throw signUpError;
 
-      // Since Confirm Email is OFF, data.session will exist immediately
+   
       if (data.session) {
         await fetch('http://127.0.0.1:5001/api/auth/login', {
           method: 'POST',
@@ -40,7 +40,7 @@ const Register = () => {
           body: JSON.stringify({ token: data.session.access_token }),
         });
         
-        // Success! Go to notes
+       
         window.location.replace("/notes");
       }
     } catch (err: unknown) {
