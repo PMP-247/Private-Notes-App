@@ -14,7 +14,7 @@ router.post('/login', async (req, res) => {
   }
 
   try {
-    // Verify token with Supabase
+   
     const { data: { user }, error } = await supabase.auth.getUser(token);
 
     if (error || !user) {
@@ -24,9 +24,9 @@ router.post('/login', async (req, res) => {
     // 🍪 SET COOKIE (THIS IS THE CRITICAL PART)
     res.cookie('token', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production', // true on Render
+      secure: true, // true on Render
       sameSite: 'none', // REQUIRED for Vercel ↔ Render
-      maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
+      maxAge: 1000 * 60 * 60 * 24 * 7, 
     });
 
     return res.json({ user });
@@ -37,7 +37,7 @@ router.post('/login', async (req, res) => {
 });
 
 /**
- * LOGOUT ROUTE (RECOMMENDED)
+ * LOGOUT ROUTE 
  */
 router.post('/logout', (req, res) => {
   res.clearCookie('token', {

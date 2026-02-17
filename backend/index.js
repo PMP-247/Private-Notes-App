@@ -13,7 +13,7 @@ const app = express(); // ✅ ONLY ONCE
 
 const allowedOrigins = [
   'http://localhost:5173',
-  process.env.CLIENT_URL,
+  'https://private-notes-app-five.vercel.app', // your Vercel frontend
 ];
 
 app.use(cors({
