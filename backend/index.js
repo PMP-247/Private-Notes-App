@@ -9,12 +9,11 @@ import { authenticateUser } from './middleware/auth.js';
 
 dotenv.config();
 
-const app = express();
+const app = express(); // ✅ ONLY ONCE
 
-// ✅ PRODUCTION-SAFE CORS
 const allowedOrigins = [
   'http://localhost:5173',
-  'https://YOUR-FRONTEND.vercel.app'
+  process.env.CLIENT_URL,
 ];
 
 app.use(cors({
@@ -22,7 +21,7 @@ app.use(cors({
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      callback(new Error('CORS blocked'));
+      callback(new Error(`CORS blocked: ${origin}`));
     }
   },
   credentials: true,
@@ -31,13 +30,13 @@ app.use(cors({
 app.use(express.json());
 app.use(cookieParser());
 
-// Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/notes', authenticateUser, notesRoutes);
 
 const PORT = process.env.PORT || 5001;
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`>>> SERVER ACTIVE AT: http://0.0.0.0:${PORT}`);
+  console.log(`>>> SERVER ACTIVE ON PORT ${PORT}`);
 });
+
 export default app;
