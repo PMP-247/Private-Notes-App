@@ -3,39 +3,41 @@ import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import cors from 'cors';
 
-// --- Route Imports ---
-import authRoutes from './routes/auth.js';
-import notesRoutes from './routes/notes.js';
-import { authenticateUser } from './middleware/auth.js';
+import authRoutes from '../routes/auth.js';
+import notesRoutes from '../routes/notes.js';
+import { authenticateUser } from '../middleware/auth.js';
 
 dotenv.config();
 
 const app = express();
 
-
+// ✅ PRODUCTION-SAFE CORS
+const allowedOrigins = [
+  'http://localhost:5173',
+  'https://YOUR-FRONTEND.vercel.app'
+];
 
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://127.0.0.1:5173'],
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('CORS blocked'));
+    }
+  },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 app.use(express.json());
 app.use(cookieParser());
 
-// --- Routes ---
-
-
+// Routes
 app.use('/api/auth', authRoutes);
-
-
 app.use('/api/notes', authenticateUser, notesRoutes);
 
-// --- Start Server ---
-const PORT = 5001;
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`>>> SERVER ACTIVE AT: http://127.0.0.1:${PORT}`);
-});
+const PORT = process.env.PORT || 5001;
 
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`>>> SERVER ACTIVE AT: http://0.0.0.0:${PORT}`);
+});
 export default app;
