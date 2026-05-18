@@ -62,7 +62,6 @@ const Notes = () => {
   }, [API_URL, navigate, token]);
 
   // Initial Fetch
-// Find this block around line 65
 useEffect(() => {
   const fetchNotes = async () => {
     try {
@@ -71,7 +70,7 @@ useEffect(() => {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}` // If using headers alongside cookies
+          Authorization: `Bearer ${token}`
         },
         credentials: "include"
       });
@@ -94,7 +93,7 @@ useEffect(() => {
   };
 
   fetchNotes();
-}, [API_URL, navigate, token]);
+}, [API_URL, navigate, token]); // 
 
   // Add Note
   const handleAddNote = async (e: React.FormEvent) => {
