@@ -22,8 +22,6 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl) 
-    // or those in our allowed list
     if (!origin || allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
@@ -38,7 +36,7 @@ app.use(cors({
 // 4. Standard Middleware
 app.use(cookieParser()); // Must be before auth routes to read cookies
 app.use(express.json());
-app.set('trust proxy', 1); // Required for secure cookies on Render/Vercel
+app.set('trust proxy', 1); 
 
 // 5. Request Logger (Helpful for debugging 404s)
 app.use((req, res, next) => {
@@ -46,15 +44,12 @@ app.use((req, res, next) => {
   next();
 });
 
-// 6. Route Definitions
-// Prefixing with /api/auth. Note: routes/auth.js should use relative paths like /me
-app.use('/api/auth', authRoutes);
+
 app.use('/api/notes', authenticateUser, notesRoutes);
 
 // 7. Server Listener
 const PORT = process.env.PORT || 5001;
 
-// Use 0.0.0.0 for Render deployment compatibility
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`>>> SERVER ACTIVE ON PORT ${PORT}`);
 });

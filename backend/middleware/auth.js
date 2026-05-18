@@ -17,7 +17,7 @@ export const authenticateUser = async (req, res, next) => {
     return res.status(401).json({ error: 'Invalid or expired session' });
   }
 
-  // 3. Attach user and a fresh supabase client to the request
+  //attach a user
   req.user = user;
   req.supabase = supabase; 
   next();

@@ -62,9 +62,39 @@ const Notes = () => {
   }, [API_URL, navigate, token]);
 
   // Initial Fetch
-  useEffect(() => {
-    fetchNotes();
-  }, [fetchNotes]);
+// Find this block around line 65
+useEffect(() => {
+  const fetchNotes = async () => {
+    try {
+      setIsLoading(true);
+      const res = await fetch(`${API_URL}/api/notes`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}` // If using headers alongside cookies
+        },
+        credentials: "include"
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        const actualNotes = Array.isArray(data) ? data : data.notes;
+        setNotes(actualNotes || []);
+      } else if (res.status === 401) {
+        navigate("/login");
+      } else {
+        setError("Failed to fetch notes");
+      }
+    } catch (err) {
+      console.error("Fetch error:", err);
+      setError("Network error fetching notes");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  fetchNotes();
+}, [API_URL, navigate, token]);
 
   // Add Note
   const handleAddNote = async (e: React.FormEvent) => {
