@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../supabaseClient';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+
 const Navbar = () => {
   const [displayName, setDisplayName] = useState<string>('USER');
 
@@ -24,12 +26,12 @@ const Navbar = () => {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     // Clearing backend session
-    await fetch('http://localhost:5001/api/auth/logout', { method: 'POST', credentials: 'include' });
+    await fetch(`${API_URL}/api/auth/logout`, { method: 'POST', credentials: 'include' });
     window.location.href = "/login";
   };
 
   return (
-    <nav className="bg-white border-b-4 border-blue-900 px-6 py-4 shadow-sm mb-8">
+    <nav className="bg-blue-900 border-b-4 border-blue-900 px-6 py-4 shadow-sm mb-8">
       <div className="max-w-4xl mx-auto flex justify-between items-center">
         <div className="flex flex-col">
           <h1 className="text-xl font-black uppercase tracking-tighter text-black leading-none">

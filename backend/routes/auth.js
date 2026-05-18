@@ -1,52 +1,42 @@
 import express from 'express';
-import { supabase } from '../supabaseClient.js';
+import { createClient } from '@supabase/supabase-js';
 
 const router = express.Router();
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
 
-/**
- * LOGIN ROUTE
- */
+// Login Route
 router.post('/login', async (req, res) => {
-  const { token } = req.body;
-
-  if (!token) {
-    return res.status(400).json({ error: 'Token is required' });
-  }
+  const { email, password } = req.body;
 
   try {
-   
-    const { data: { user }, error } = await supabase.auth.getUser(token);
-
-    if (error || !user) {
-      return res.status(401).json({ error: 'Invalid token' });
-    }
-
-    // 🍪 SET COOKIE (THIS IS THE CRITICAL PART)
-    res.cookie('token', token, {
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) return res.status(401).json({ error: error.message });
+    
+const isProduction = process.env.NODE_VALUE === 'production';
+    // SETTING THE CORRECT COOKIE FOR LOCAL & DEPLOYMENT
+    res.cookie('sb-access-token', data.session.access_token, {
       httpOnly: true,
-      secure: true, // true on Render
-      sameSite: 'none', // REQUIRED for Vercel ↔ Render
-      maxAge: 1000 * 60 * 60 * 24 * 7, 
+      secure: true,      // Set to true; index.js "trust proxy" handles local testing
+      sameSite: 'none',  // Crucial for cross-domain
+      maxAge: 60 * 60 * 1000, 
+      path: '/'
     });
 
-    return res.json({ user });
+    res.json({ user: data.user });
   } catch (err) {
-    console.error('Login error:', err);
-    return res.status(500).json({ error: 'Server error' });
+    res.status(500).json({ error: 'Internal Server Error' });
   }
 });
 
-/**
- * LOGOUT ROUTE 
- */
-router.post('/logout', (req, res) => {
-  res.clearCookie('token', {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'none',
-  });
+// Check Auth Route (The one that was 404ing)
+router.get('/me', async (req, res) => {
+  const token = req.cookies['sb-access-token'];
+  if (!token) return res.status(401).json({ error: 'No session' });
 
-  res.json({ message: 'Logged out' });
+  const { data: { user }, error } = await supabase.auth.getUser(token);
+  if (error || !user) return res.status(401).json({ error: 'Invalid session' });
+
+  res.json({ user });
 });
 
 export default router;

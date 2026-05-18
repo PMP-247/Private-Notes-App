@@ -1,14 +1,15 @@
 import express from 'express';
+// Note: We don't import a static supabase client here anymore.
+// We use the one attached to the request by our middleware.
 
 const router = express.Router();
 
 /**
  * GET ALL NOTES
- * Path: GET /api/notes
  */
 router.get('/', async (req, res) => {
   try {
-    // Uses req.supabase attached by your updated auth middleware
+    // 1. Use req.supabase (authenticated) instead of the static client
     const { data, error } = await req.supabase
       .from('notes')
       .select('*')
@@ -17,7 +18,7 @@ router.get('/', async (req, res) => {
 
     if (error) throw error;
 
-    // Wrap in an object to match frontend logic
+    // 2. Wrap in an object to match your frontend logic: { notes: [...] }
     return res.json({ notes: data });
   } catch (err) {
     console.error('Fetch error:', err.message);
@@ -27,7 +28,6 @@ router.get('/', async (req, res) => {
 
 /**
  * CREATE A NEW NOTE
- * Path: POST /api/notes
  */
 router.post('/', async (req, res) => {
   const { title, content } = req.body;
@@ -50,7 +50,6 @@ router.post('/', async (req, res) => {
 
     if (error) throw error;
 
-    // Returns { note: { ... } } for easy frontend state updates
     return res.status(201).json({ note: data[0] });
   } catch (err) {
     console.error('Create error:', err.message);
@@ -60,7 +59,6 @@ router.post('/', async (req, res) => {
 
 /**
  * DELETE A NOTE
- * Path: DELETE /api/notes/:id
  */
 router.delete('/:id', async (req, res) => {
   const { id } = req.params;

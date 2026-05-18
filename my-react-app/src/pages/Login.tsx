@@ -1,10 +1,10 @@
-import { useState, FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, FormEvent } from 'react';
 import { supabase } from '../supabaseClient';
+import { Link } from 'react-router-dom';
 
-// Define the Props interface for TypeScript
+// ✅ No token argument — App.tsx handleAuthSuccess takes no parameters
 interface LoginProps {
-  onAuthSuccess: (token: string) => void;
+  onAuthSuccess: () => void;
 }
 
 const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
@@ -12,7 +12,7 @@ const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const navigate = useNavigate();
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
   const handleLogin = async (e: FormEvent) => {
     e.preventDefault();
@@ -20,27 +20,33 @@ const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
     setError(null);
 
     try {
-      const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password });
+      // Step 1: Supabase signs the user in and returns a session token
+      const { data, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
       if (authError) throw authError;
+      if (!data.session) throw new Error('No session returned from Supabase');
 
-      if (data.session) {
-      
-        const response = await fetch('http://127.0.0.1:5001/api/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token: data.session.access_token }),
-        });
+      // Step 2: Send token to backend — backend validates and sets the httpOnly cookie
+      const response = await fetch(`${API_URL}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: data.session.access_token }),
+        credentials: 'include',
+      });
 
-        if (!response.ok) throw new Error('Failed to establish server session');
-
-        onAuthSuccess(data.session.access_token);
-        navigate('/notes');
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body.error || 'Failed to establish server session');
       }
-    } catch (err: unknown) {
-      if (err instanceof Error) setError(err.message);
 
-      
-      else setError('Login failed');
+      // Step 3: Tell App.tsx auth succeeded — it sets state and navigates to /notes
+      onAuthSuccess();
+
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Login failed');
     } finally {
       setIsLoading(false);
     }
@@ -49,12 +55,18 @@ const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
       <div className="max-w-md w-full">
+
         <div className="text-center mb-8">
           <h2 className="text-4xl font-black text-black uppercase">Welcome Back</h2>
-          <p className="text-black font-bold mt-2 uppercase tracking-wide">Access your private vault</p>
+          <p className="text-black font-bold mt-2 uppercase tracking-wide">
+            Access your private vault
+          </p>
         </div>
 
-        <form onSubmit={handleLogin} className="space-y-5 bg-white p-8 shadow-xl rounded-2xl border-2 border-blue-900">
+        <form
+          onSubmit={handleLogin}
+          className="space-y-5 bg-white p-8 shadow-xl rounded-2xl border-2 border-blue-900"
+        >
           {error && (
             <div className="bg-red-50 border-2 border-blue-900 text-red-600 px-4 py-2 rounded-md text-sm font-bold">
               {error}
@@ -62,8 +74,10 @@ const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
           )}
 
           <div>
-           
-            <label htmlFor="login-email" className="block text-sm font-black text-black mb-1 uppercase">
+            <label
+              htmlFor="login-email"
+              className="block text-sm font-black text-black mb-1 uppercase"
+            >
               Email Address
             </label>
             <input
@@ -77,9 +91,12 @@ const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
           </div>
 
           <div>
-          <label htmlFor="login-password" className="block text-sm font-black text-black mb-1 uppercase">
-  Password
-</label>
+            <label
+              htmlFor="login-password"
+              className="block text-sm font-black text-black mb-1 uppercase"
+            >
+              Password
+            </label>
             <input
               id="login-password"
               type="password"
@@ -101,10 +118,14 @@ const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
 
         <p className="mt-8 text-center text-sm font-bold text-black uppercase">
           New here?{' '}
-          <Link to="/register" className="text-red-600 hover:text-pink-600 underline font-black">
+          <Link
+            to="/register"
+            className="text-red-600 hover:text-pink-600 underline font-black"
+          >
             Create an account
           </Link>
         </p>
+
       </div>
     </div>
   );

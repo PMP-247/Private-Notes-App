@@ -1,41 +1,54 @@
-import React, { useEffect, useState, type ReactNode } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import React, { useEffect, useState, useCallback, type ReactNode } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Notes from './pages/Notes';
 import Navbar from './pages/Navbar';
+import Footer from './pages/Footer';
 
+// ─── Auth State Types ─────────────────────────────────────────────────────────
+type AuthState = 'loading' | 'authenticated' | 'unauthenticated' | 'error';
+
+interface AuthContextValue {
+  authState: AuthState;
+  setAuthState: (state: AuthState) => void;
+}
+
+// ─── Auth Context ─────────────────────────────────────────────────────────────
+const AuthContext = React.createContext<AuthContextValue>({
+  authState: 'loading',
+  setAuthState: () => {},
+});
+
+// ─── API URL from .env ────────────────────────────────────────────────────────
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+// ─── Auth Check ───────────────────────────────────────────────────────────────
+// Hits /api/auth/me — validates the cookie without fetching any data
+// ✅ Correct checkAuth
+const checkAuth = async (): Promise<AuthState> => {
+  try {
+    const res = await fetch(`${API_URL}/api/auth/me`, {
+      method: 'GET',
+      credentials: 'include', // CRITICAL: Tells browser to handle cookies
+    });
+    if (res.status === 401) return 'unauthenticated';
+    if (res.ok) return 'authenticated';
+    return 'error';
+  } catch {
+    return 'error';
+  }
+};
+
+// ─── Protected Route ──────────────────────────────────────────────────────────
 interface ProtectedRouteProps {
   children: ReactNode;
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const { authState } = React.useContext(AuthContext);
 
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        // Using 127.0.0.1 to match backend and Login/Register fixes
-        const res = await fetch('http://127.0.0.1:5001/api/notes', {
-          method: 'GET',
-          credentials: 'include', // Sends the secure cookie to the backend
-        });
-
-        if (res.status === 401) {
-          setIsAuthenticated(false);
-        } else {
-          setIsAuthenticated(res.ok);
-        }
-      } catch (err) {
-        console.error("Auth check failed:", err);
-        setIsAuthenticated(false);
-      }
-    };
-    checkAuth();
-  }, []);
-
-  if (isAuthenticated === null) {
+  if (authState === 'loading') {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50">
         <div className="text-center">
@@ -48,37 +61,84 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     );
   }
 
-  return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />;
+  if (authState === 'error') {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-50">
+        <div className="text-center">
+          <p className="text-red-600 font-semibold text-lg">Unable to reach the server.</p>
+          <p className="text-slate-500 mt-2 text-sm">
+            Please check your connection and try again.
+          </p>
+          <button
+            className="mt-4 px-4 py-2 bg-pink-600 text-white rounded hover:bg-pink-700"
+            onClick={() => window.location.reload()}
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return authState === 'authenticated' ? <>{children}</> : <Navigate to="/login" replace />;
 };
 
+// ─── App Routes ───────────────────────────────────────────────────────────────
+// Kept inside BrowserRouter so useNavigate works correctly
+const AppRoutes: React.FC = () => {
+  const navigate = useNavigate();
+  const [authState, setAuthState] = useState<AuthState>('loading');
 
-function App() {
-  
-  const handleAuthSuccess = () => { 
-  
-    window.location.href = "/notes";
-  };
+  const initAuth = useCallback(async () => {
+    const state = await checkAuth();
+    setAuthState(state);
+  }, []);
+
+  useEffect(() => {
+  }, [initAuth]);
+
+  // ✅ No token argument — Login handles Supabase auth, backend owns the cookie
+const handleAuthSuccess = () => {
+  setAuthState('authenticated');
+  navigate('/notes');
+};
+
   return (
-    <BrowserRouter>
+    <AuthContext.Provider value={{ authState, setAuthState }}>
       <div className="min-h-screen bg-slate-50 text-black">
         <Routes>
+          {/* Default redirect */}
           <Route path="/" element={<Navigate to="/login" replace />} />
+
+          {/* Public routes */}
           <Route path="/login" element={<Login onAuthSuccess={handleAuthSuccess} />} />
           <Route path="/register" element={<Register />} />
-          
-          <Route 
-            path="/notes" 
+
+          {/* Protected — Navbar + Notes only render when authenticated */}
+          <Route
+            path="/notes"
             element={
               <ProtectedRoute>
                 <Navbar />
                 <Notes />
               </ProtectedRoute>
-            } 
+            }
           />
 
+          {/* Catch-all fallback */}
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
+        <Footer />
       </div>
+    </AuthContext.Provider>
+  );
+};
+
+// ─── Root App ─────────────────────────────────────────────────────────────────
+function App() {
+  return (
+    <BrowserRouter>
+      <AppRoutes />
     </BrowserRouter>
   );
 }

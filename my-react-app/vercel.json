@@ -1,15 +1,23 @@
-
-
 {
-    "version": 2,
-    "rewrites": [
-      {
-        "source": "/api/(.*)",
-        "destination": "/backend/index.js"
-      },
-      {
-        "source": "/(.*)",
-        "destination": "/my-react-app/$1"
-      }
-    ]
-  }
+  "version": 2,
+  "builds": [
+    {
+      "src": "my-react-app/dist/**",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "backend/server.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "backend/server.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "my-react-app/dist/index.html"
+    }
+  ]
+}

@@ -1,40 +1,60 @@
 import express from 'express';
-import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
+
+// 1. Load environment variables IMMEDIATELY
+dotenv.config();
+
+import cookieParser from 'cookie-parser';
 import cors from 'cors';
 
+// 2. Import routes and middleware
 import authRoutes from './routes/auth.js';
 import notesRoutes from './routes/notes.js';
 import { authenticateUser } from './middleware/auth.js';
 
-dotenv.config();
+const app = express();
 
-const app = express(); // ✅ ONLY ONCE
-
+// 3. CORS Configuration
 const allowedOrigins = [
   'http://localhost:5173',
-  'https://private-notes-app-five.vercel.app', // your Vercel frontend
+  'https://private-notes-app-five.vercel.app', 
 ];
 
 app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) {
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl) 
+    // or those in our allowed list
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
-      callback(new Error(`CORS blocked: ${origin}`));
+      callback(new Error('Not allowed by CORS'));
     }
   },
-  credentials: true,
+  credentials: true, // Required for cross-domain cookies (Vercel -> Render)
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
+// 4. Standard Middleware
+app.use(cookieParser()); // Must be before auth routes to read cookies
 app.use(express.json());
-app.use(cookieParser());
+app.set('trust proxy', 1); // Required for secure cookies on Render/Vercel
 
+// 5. Request Logger (Helpful for debugging 404s)
+app.use((req, res, next) => {
+  console.log(`[${new Date().toLocaleTimeString()}] ${req.method} ${req.path}`);
+  next();
+});
+
+// 6. Route Definitions
+// Prefixing with /api/auth. Note: routes/auth.js should use relative paths like /me
 app.use('/api/auth', authRoutes);
 app.use('/api/notes', authenticateUser, notesRoutes);
 
+// 7. Server Listener
 const PORT = process.env.PORT || 5001;
 
+// Use 0.0.0.0 for Render deployment compatibility
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`>>> SERVER ACTIVE ON PORT ${PORT}`);
 });

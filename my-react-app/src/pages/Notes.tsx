@@ -1,8 +1,10 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Loader2, Lock, Plus, Trash2 } from 'lucide-react';
 
 interface Note {
   id: string;
+  title: string;
   content: string;
   created_at: string;
 }
@@ -11,108 +13,221 @@ const Notes = () => {
   const [notes, setNotes] = useState<Note[]>([]);
   const [newNote, setNewNote] = useState('');
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const navigate = useNavigate();
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+  const API_URL =
+    import.meta.env.VITE_API_URL ||
+    'https://private-notes-app-1-ksks.onrender.com';
 
+  // Get auth token
+  const token = localStorage.getItem('token');
+
+  // Fetch Notes
   const fetchNotes = useCallback(async () => {
     try {
-      const res = await fetch(`${API_URL}/api/notes`, { credentials: 'include' });
+      setIsLoading(true);
+
+      const res = await fetch(`${API_URL}/api/notes`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        credentials: 'include',
+      });
+
       if (res.ok) {
         const data = await res.json();
-        setNotes(data.notes || []);
+
+        // Handles both [] and { notes: [] }
+        const actualNotes = Array.isArray(data)
+          ? data
+          : data.notes;
+
+        setNotes(actualNotes || []);
       } else if (res.status === 401) {
         navigate('/login');
       } else {
-        setError('Failed to load notes');
+        setError('Failed to fetch notes');
       }
-    } catch {
-      setError('Connection error');
+    } catch (err) {
+      console.error('Fetch error:', err);
+      setError('Network error fetching notes');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
-  }, [navigate, API_URL]);
+  }, [API_URL, navigate, token]);
 
-  useEffect(() => { fetchNotes(); }, [fetchNotes]);
+  // Initial Fetch
+  useEffect(() => {
+    fetchNotes();
+  }, [fetchNotes]);
 
+  // Add Note
   const handleAddNote = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (!newNote.trim()) return;
+
+    setIsSubmitting(true);
+    setError('');
+
     try {
+      const lines = newNote.trim().split('\n');
+      const title = lines[0].substring(0, 50);
+
       const res = await fetch(`${API_URL}/api/notes`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: newNote }),
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
         credentials: 'include',
+        body: JSON.stringify({
+          title,
+          content: newNote,
+        }),
       });
+
       if (res.ok) {
         setNewNote('');
-        fetchNotes();
+        await fetchNotes();
+      } else if (res.status === 401) {
+        navigate('/login');
+      } else {
+        const errData = await res.json();
+        setError(errData.error || 'Failed to save note');
       }
-    } catch (err) { console.error(err); }
+    } catch (err) {
+      console.error(err);
+      setError('Network error saving note');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
+  // Delete Note
   const handleDeleteNote = async (id: string) => {
     try {
-      const res = await fetch(`${API_URL}/api/notes/${id}`, { method: 'DELETE', credentials: 'include' });
-      if (res.ok) fetchNotes();
-    } catch (err) { console.error(err); }
+      const res = await fetch(`${API_URL}/api/notes/${id}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        credentials: 'include',
+      });
+
+      if (res.ok) {
+        setNotes((prev) =>
+          prev.filter((note) => note.id !== id)
+        );
+      } else if (res.status === 401) {
+        navigate('/login');
+      }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  if (loading) return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50">
-      <p className="text-black font-black animate-pulse uppercase">Loading your private notes...</p>
-    </div>
-  );
+  // Loading State
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <Loader2
+          className="animate-spin text-indigo-600"
+          size={40}
+        />
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-slate-50 p-4 md:p-8 text-black">
-      <div className="max-w-2xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-black uppercase tracking-tight">My Private Notes</h1>
-          <button onClick={() => navigate('/login')} className="text-sm font-black text-red-600 hover:text-pink-600 underline uppercase">
-            Logout
-          </button>
-        </div>
+    <div className="min-h-screen bg-slate-50 p-6 md:p-12">
+      <div className="max-w-4xl mx-auto">
 
-        <form onSubmit={handleAddNote} className="mb-8">
-          <div className="flex gap-3">
-            <input
-              type="text"
-              value={newNote}
-              onChange={(e) => setNewNote(e.target.value)}
-              placeholder="Write a new note..."
-              className="flex-1 rounded-md border-2 border-blue-900 bg-white py-2 px-3 text-black font-medium focus:ring-2 focus:ring-pink-500 outline-none"
-            />
-            <button type="submit" className="bg-linear-to-r from-red-600 to-pink-500 text-white px-6 py-2 rounded-md font-black shadow-md hover:opacity-90 transition-opacity uppercase">
-              Add
+        {/* Header */}
+        <header className="flex justify-between items-center mb-10">
+          <h1 className="text-3xl font-black text-black uppercase tracking-tighter flex items-center gap-2">
+            <Lock className="text-indigo-600" />
+            Private Feed
+          </h1>
+        </header>
+
+        {/* Error */}
+        {error && (
+          <div className="bg-red-100 border-2 border-red-600 text-red-700 px-4 py-2 rounded-lg mb-6 font-bold uppercase text-xs">
+            {error}
+          </div>
+        )}
+
+        {/* Add Note */}
+        <form
+          onSubmit={handleAddNote}
+          className="bg-white rounded-2xl shadow-xl border-2 border-blue-900 p-6 mb-10"
+        >
+          <textarea
+            className="w-full h-32 resize-none outline-none text-black font-medium placeholder:text-slate-400 text-lg"
+            placeholder="What's on your mind? (First line becomes title)"
+            value={newNote}
+            onChange={(e) => setNewNote(e.target.value)}
+          />
+
+          <div className="flex justify-end mt-4 border-t border-slate-100 pt-4">
+            <button
+              type="submit"
+              disabled={isSubmitting || !newNote.trim()}
+              className="bg-linear-to-r from-indigo-600 to-blue-500 text-white px-6 py-2 rounded-xl font-black uppercase tracking-widest flex items-center gap-2 hover:scale-105 transition-transform disabled:opacity-50"
+            >
+              {isSubmitting ? (
+                <Loader2 className="animate-spin" size={18} />
+              ) : (
+                <Plus size={18} />
+              )}
+
+              Save Note
             </button>
           </div>
-          {error && <p className="mt-2 text-sm text-red-600 font-bold">{error}</p>}
         </form>
 
-        <div className="grid gap-4">
-          {notes.length === 0 ? (
-            <div className="text-center py-20 bg-white rounded-lg border-2 border-blue-900 shadow-inner">
-              <p className="text-black font-black uppercase">No notes yet. Add your first one above!</p>
-            </div>
-          ) : (
+        {/* Notes Feed */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {notes.length > 0 ? (
             notes.map((note) => (
-              <div key={note.id} className="group bg-white p-5 rounded-lg border-2 border-blue-900 shadow-sm hover:shadow-pink-100 transition-all flex justify-between items-start">
-                <div className="flex-1">
-                  <p className="text-black font-bold leading-relaxed">{note.content}</p>
-                  <p className="text-[10px] text-pink-600 mt-4 font-black uppercase tracking-widest">
-                    {new Date(note.created_at).toLocaleDateString()}
-                  </p>
+              <div
+                key={note.id}
+                className="bg-white p-6 rounded-2xl border-2 border-blue-900 shadow-lg group hover:-translate-y-1 transition-all"
+              >
+                <div className="flex justify-between items-start mb-4">
+                  <h3 className="font-black text-black uppercase truncate pr-4">
+                    {note.title}
+                  </h3>
+
+                  <button
+                    onClick={() => handleDeleteNote(note.id)}
+                    className="text-slate-300 hover:text-red-600 transition-colors"
+                  >
+                    <Trash2 size={18} />
+                  </button>
                 </div>
-                <button onClick={() => handleDeleteNote(note.id)} className="ml-4 p-2 text-red-600 hover:text-pink-500 transition-colors">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-6 h-6">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
-                  </svg>
-                </button>
+
+                <p className="text-slate-700 leading-relaxed line-clamp-5 whitespace-pre-wrap">
+                  {note.content}
+                </p>
+
+                <div className="mt-4 pt-4 border-t border-slate-50 flex items-center text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                  {new Date(note.created_at).toLocaleDateString()}
+                </div>
               </div>
             ))
+          ) : (
+            <div className="col-span-full text-center py-20 bg-white rounded-2xl border-2 border-dashed border-slate-300">
+              <p className="font-bold text-slate-400 uppercase tracking-widest">
+                No notes in the vault yet.
+              </p>
+            </div>
           )}
         </div>
       </div>

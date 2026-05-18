@@ -1,8 +1,9 @@
 @import "tailwindcss";
 
-@theme {
-  --color-dark-blue: #1e3a8a; /* Consistent with blue-900 */
-}
+
+/* Any custom styles go below */
+
+
 
 body {
   background-color: #f8fafc; /* slate-50 */
@@ -11,7 +12,9 @@ body {
   padding: 0;
 }
 
-/* Utility for your requested high-contrast borders */
+
 .border-navy {
   border: 2px solid #1e3a8a; 
 }
+
+
