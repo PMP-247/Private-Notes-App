@@ -30,15 +30,13 @@ const Notes = () => {
     try {
       setIsLoading(true);
 
-      const res = await fetch(`${API_URL}/api/notes`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        credentials: 'include',
-      });
-
+const res = await fetch(`${API_URL}/api/notes`, {
+  method: "GET",
+  headers: {
+    "Content-Type": "application/json"
+  },
+  credentials: "include" // 👈 CRITICAL: This allows cookies to pass through cross-domain boundaries
+});
       if (res.ok) {
         const data = await res.json();
 
@@ -59,7 +57,7 @@ const Notes = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [API_URL, navigate, token]);
+  }, [API_URL, navigate, ]);
 
   // Initial Fetch
 useEffect(() => {

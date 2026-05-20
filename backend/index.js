@@ -1,8 +1,16 @@
+import { createClient } from '@supabase/supabase-js';
 import express from 'express';
 import dotenv from 'dotenv';
 
 // 1. Load environment variables IMMEDIATELY
 dotenv.config();
+
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error("Missing Supabase Environment Variables");
+}
 
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
@@ -55,4 +63,5 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`>>> SERVER ACTIVE ON PORT ${PORT}`);
 });
 
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 export default app;
