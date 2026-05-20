@@ -1,83 +1,74 @@
 import express from 'express';
 import { supabase } from '../supabaseClient.js';
+
 const router = express.Router();
 
-/**
- * GET ALL NOTES
- * Path: GET /api/notes
- */
+// Get all notes for the authenticated user
 router.get('/', async (req, res) => {
   try {
-    // Uses req.supabase attached by your updated auth middleware
-    const { data, error } = await req.supabase
-      .from('notes')
+    // Queries the table directly using the user payload attached from your middleware
+    const { data, error } = await supabase
+      .from('notes') // 👈 If your table is capitalized in Supabase, change this to 'Notes'
       .select('*')
-      .eq('user_id', req.user.id) 
+      .eq('user_id', req.user.id)
       .order('created_at', { ascending: false });
 
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase Query Error:', error.message);
+      return res.status(500).json({ error: `Supabase structural error: ${error.message}` });
+    }
 
-    // Wrap in an object to match frontend logic
-    return res.json({ notes: data });
+    return res.json(data);
   } catch (err) {
-    console.error('Fetch error:', err.message);
-    return res.status(500).json({ error: 'Failed to fetch notes' });
+    console.error('Catch Block Server Exception:', err.message);
+    return res.status(500).json({ error: 'Internal Server Catch Exception' });
   }
 });
 
-/**
- * CREATE A NEW NOTE
- * Path: POST /api/notes
- */
+// Create a new note
 router.post('/', async (req, res) => {
   const { title, content } = req.body;
 
-  if (!content) {
-    return res.status(400).json({ error: 'Content is required' });
-  }
-
   try {
-    const { data, error } = await req.supabase
-      .from('notes')
+    const { data, error } = await supabase
+      .from('notes') // 👈 Match table casing here as well
       .insert([
-        { 
-          title: title || 'Untitled Note', 
-          content, 
-          user_id: req.user.id 
-        }
+        {
+          title,
+          content,
+          user_id: req.user.id,
+        },
       ])
       .select();
 
-    if (error) throw error;
+    if (error) {
+      return res.status(500).json({ error: error.message });
+    }
 
-    // Returns { note: { ... } } for easy frontend state updates
-    return res.status(201).json({ note: data[0] });
+    return res.status(201).json(data[0]);
   } catch (err) {
-    console.error('Create error:', err.message);
-    return res.status(500).json({ error: 'Failed to create note' });
+    return res.status(500).json({ error: 'Internal Server Error' });
   }
 });
 
-/**
- * DELETE A NOTE
- * Path: DELETE /api/notes/:id
- */
+// Delete a note
 router.delete('/:id', async (req, res) => {
   const { id } = req.params;
 
   try {
-    const { error } = await req.supabase
-      .from('notes')
+    const { error } = await supabase
+      .from('notes') // 👈 Match table casing here as well
       .delete()
       .eq('id', id)
       .eq('user_id', req.user.id);
 
-    if (error) throw error;
+    if (error) {
+      return res.status(500).json({ error: error.message });
+    }
 
     return res.json({ message: 'Note deleted successfully' });
   } catch (err) {
-    console.error('Delete error:', err.message);
-    return res.status(500).json({ error: 'Failed to delete note' });
+    return res.status(500).json({ error: 'Internal Server Error' });
   }
 });
 
