@@ -12,23 +12,26 @@ router.post('/login', async (req, res) => {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) return res.status(401).json({ error: error.message });
     
-const isProduction = process.env.NODE_VALUE === 'production';
-    // SETTING THE CORRECT COOKIE FOR LOCAL & DEPLOYMENT
+    // Fixed: Use process.env.NODE_ENV
+    const isProduction = process.env.NODE_ENV === 'production';
+    
     res.cookie('sb-access-token', data.session.access_token, {
       httpOnly: true,
-      secure: true,      // Set to true; index.js "trust proxy" handles local testing
-      sameSite: 'none',  // Crucial for cross-domain
+      // Must be false on local http://localhost connections
+      secure: isProduction,      
+      // SameSite 'none' requires an encrypted HTTPS context. Use 'lax' locally.
+      sameSite: isProduction ? 'none' : 'lax',  
       maxAge: 60 * 60 * 1000, 
       path: '/'
     });
 
-    res.json({ user: data.user });
+    return res.json({ user: data.user });
   } catch (err) {
-    res.status(500).json({ error: 'Internal Server Error' });
+    return res.status(500).json({ error: 'Internal Server Error' });
   }
 });
 
-// Check Auth Route (The one that was 404ing)
+// Check Auth Route
 router.get('/me', async (req, res) => {
   const token = req.cookies['sb-access-token'];
   if (!token) return res.status(401).json({ error: 'No session' });
@@ -36,7 +39,7 @@ router.get('/me', async (req, res) => {
   const { data: { user }, error } = await supabase.auth.getUser(token);
   if (error || !user) return res.status(401).json({ error: 'Invalid session' });
 
-  res.json({ user });
+  return res.json({ user });
 });
 
 export default router;

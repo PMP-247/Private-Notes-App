@@ -31,11 +31,10 @@ const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
 
       // Step 2: Send token to backend — backend validates and sets the httpOnly cookie
       const response = await fetch(`${API_URL}/api/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: data.session.access_token }),
-        credentials: 'include',
-      });
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ email, password }),
+});
 
       if (!response.ok) {
         const body = await response.json().catch(() => ({}));

@@ -36,6 +36,7 @@ app.use(cors({
 // 4. Standard Middleware
 app.use(cookieParser()); // Must be before auth routes to read cookies
 app.use(express.json());
+
 app.set('trust proxy', 1); 
 
 // 5. Request Logger (Helpful for debugging 404s)
@@ -44,7 +45,7 @@ app.use((req, res, next) => {
   next();
 });
 
-
+app.use('/api/auth', authRoutes);
 app.use('/api/notes', authenticateUser, notesRoutes);
 
 // 7. Server Listener
