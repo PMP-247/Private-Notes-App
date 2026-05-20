@@ -22,18 +22,17 @@ const Notes = () => {
     import.meta.env.VITE_API_URL ||
     'https://private-notes-app-1-ksks.onrender.com';
 
-  // 1. Fetch Notes (Purely relying on cross-domain cookies)
+  // Fetch Notes
   const fetchNotes = useCallback(async () => {
     try {
-      setIsLoading(true);
       const res = await fetch(`${API_URL}/api/notes`, {
-        method: "GET",
+        method: 'GET',
         headers: {
-          "Content-Type": "application/json"
+          'Content-Type': 'application/json',
         },
-        credentials: "include" // 👈 Hands off the session cookie automatically
+        credentials: 'include',
       });
-      
+
       if (res.ok) {
         const data = await res.json();
         const actualNotes = Array.isArray(data) ? data : data.notes;
@@ -51,14 +50,15 @@ const Notes = () => {
     }
   }, [API_URL, navigate]);
 
-  // 2. Initial Mount Hook (Calls the clean callback definition above)
+  // Initial Mount Hook
   useEffect(() => {
     fetchNotes();
-  }, [fetchNotes]); 
+  }, [fetchNotes]);
 
-  // 3. Add Note
+  // Add Note
   const handleAddNote = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (!newNote.trim()) return;
 
     setIsSubmitting(true);
@@ -71,7 +71,7 @@ const Notes = () => {
       const res = await fetch(`${API_URL}/api/notes`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json', // Removed Authorization Header
+          'Content-Type': 'application/json',
         },
         credentials: 'include',
         body: JSON.stringify({
@@ -97,18 +97,16 @@ const Notes = () => {
     }
   };
 
-  // 4. Delete Note
+  // Delete Note
   const handleDeleteNote = async (id: string) => {
     try {
       const res = await fetch(`${API_URL}/api/notes/${id}`, {
-        method: 'DELETE', // Removed Authorization Header
+        method: 'DELETE',
         credentials: 'include',
       });
 
       if (res.ok) {
-        setNotes((prev) =>
-          prev.filter((note) => note.id !== id)
-        );
+        setNotes((prev) => prev.filter((note) => note.id !== id));
       } else if (res.status === 401) {
         navigate('/login');
       }
@@ -119,7 +117,7 @@ const Notes = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <div className="flex min-h-screen items-center justify-center bg-slate-50">
         <Loader2 className="animate-spin text-indigo-600" size={40} />
       </div>
     );
@@ -127,58 +125,82 @@ const Notes = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 p-6 md:p-12">
-      <div className="max-w-4xl mx-auto">
-        <header className="flex justify-between items-center mb-10">
-          <h1 className="text-3xl font-black text-black uppercase tracking-tighter flex items-center gap-2">
+      <div className="mx-auto max-w-4xl">
+        <header className="mb-10 flex items-center justify-between">
+          <h1 className="flex items-center gap-2 text-3xl font-black uppercase tracking-tighter text-black">
             <Lock className="text-indigo-600" />
             Private Feed
           </h1>
         </header>
 
         {error && (
-          <div className="bg-red-100 border-2 border-red-600 text-red-700 px-4 py-2 rounded-lg mb-6 font-bold uppercase text-xs">
+          <div className="mb-6 rounded-lg border-2 border-red-600 bg-red-100 px-4 py-2 text-xs font-bold uppercase text-red-700">
             {error}
           </div>
         )}
 
-        <form onSubmit={handleAddNote} className="bg-white rounded-2xl shadow-xl border-2 border-blue-900 p-6 mb-10">
+        <form
+          onSubmit={handleAddNote}
+          className="mb-10 rounded-2xl border-2 border-blue-900 bg-white p-6 shadow-xl"
+        >
           <textarea
-            className="w-full h-32 resize-none outline-none text-black font-medium placeholder:text-slate-400 text-lg"
+            className="h-32 w-full resize-none text-lg font-medium text-black outline-none placeholder:text-slate-400"
             placeholder="What's on your mind? (First line becomes title)"
             value={newNote}
             onChange={(e) => setNewNote(e.target.value)}
           />
-          <div className="flex justify-end mt-4 border-t border-slate-100 pt-4">
+
+          <div className="mt-4 flex justify-end border-t border-slate-100 pt-4">
             <button
               type="submit"
               disabled={isSubmitting || !newNote.trim()}
-              className="bg-linear-to-r from-indigo-600 to-blue-500 text-white px-6 py-2 rounded-xl font-black uppercase tracking-widest flex items-center gap-2 hover:scale-105 transition-transform disabled:opacity-50"
+              className="flex items-center gap-2 rounded-xl bg-linear-to-r from-indigo-600 to-blue-500 px-6 py-2 font-black uppercase tracking-widest text-white transition-transform hover:scale-105 disabled:opacity-50"
             >
-              {isSubmitting ? <Loader2 className="animate-spin" size={18} /> : <Plus size={18} />}
+              {isSubmitting ? (
+                <Loader2 className="animate-spin" size={18} />
+              ) : (
+                <Plus size={18} />
+              )}
+
               Save Note
             </button>
           </div>
         </form>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           {notes.length > 0 ? (
             notes.map((note) => (
-              <div key={note.id} className="bg-white p-6 rounded-2xl border-2 border-blue-900 shadow-lg group hover:-translate-y-1 transition-all">
-                <div className="flex justify-between items-start mb-4">
-                  <h3 className="font-black text-black uppercase truncate pr-4">{note.title}</h3>
-                  <button onClick={() => handleDeleteNote(note.id)} className="text-slate-300 hover:text-red-600 transition-colors">
+              <div
+                key={note.id}
+                className="group rounded-2xl border-2 border-blue-900 bg-white p-6 shadow-lg transition-all hover:-translate-y-1"
+              >
+                <div className="mb-4 flex items-start justify-between">
+                  <h3 className="truncate pr-4 font-black uppercase text-black">
+                    {note.title}
+                  </h3>
+
+                  <button
+                    onClick={() => handleDeleteNote(note.id)}
+                    className="text-slate-300 transition-colors hover:text-red-600"
+                  >
                     <Trash2 size={18} />
                   </button>
                 </div>
-                <p className="text-slate-700 leading-relaxed line-clamp-5 whitespace-pre-wrap">{note.content}</p>
-                <div className="mt-4 pt-4 border-t border-slate-50 flex items-center text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+
+                <p className="line-clamp-5 whitespace-pre-wrap leading-relaxed text-slate-700">
+                  {note.content}
+                </p>
+
+                <div className="mt-4 flex items-center border-t border-slate-50 pt-4 text-[10px] font-bold uppercase tracking-widest text-slate-400">
                   {new Date(note.created_at).toLocaleDateString()}
                 </div>
               </div>
             ))
           ) : (
-            <div className="col-span-full text-center py-20 bg-white rounded-2xl border-2 border-dashed border-slate-300">
-              <p className="font-bold text-slate-400 uppercase tracking-widest">No notes in the vault yet.</p>
+            <div className="col-span-full rounded-2xl border-2 border-dashed border-slate-300 bg-white py-20 text-center">
+              <p className="font-bold uppercase tracking-widest text-slate-400">
+                No notes in the vault yet.
+              </p>
             </div>
           )}
         </div>

@@ -1,25 +1,41 @@
 import { supabase } from '../supabaseClient.js';
 
 export const authenticateUser = async (req, res, next) => {
-  // 1. Read the cross-domain cookie directly
+  // Read token from HTTP-only cookie
   const token = req.cookies['sb-access-token'];
 
+  console.log('COOKIE TOKEN:', token);
+
+  // No token found
   if (!token) {
-    return res.status(401).json({ error: 'Authentication token missing' });
+    return res.status(401).json({
+      error: 'Authentication token missing',
+    });
   }
 
   try {
-    // 2. Validate token directly with your Supabase instance
-    const { data: { user }, error } = await supabase.auth.getUser(token);
+    // Verify token with Supabase
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser(token);
 
+    // Invalid token or expired session
     if (error || !user) {
-      return res.status(401).json({ error: 'Invalid or expired session' });
+      return res.status(401).json({
+        error: 'Invalid or expired session',
+      });
     }
 
-    // 3. Attach user payload to request object and pass control forward
+    // Attach user to request
     req.user = user;
+
     next();
   } catch (err) {
-    return res.status(401).json({ error: 'Unauthorized structural catch' });
+    console.error('AUTH MIDDLEWARE ERROR:', err);
+
+    return res.status(401).json({
+      error: 'Unauthorized',
+    });
   }
 };

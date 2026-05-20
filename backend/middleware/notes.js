@@ -3,7 +3,7 @@ import { supabase } from '../supabaseClient.js';
 export const authenticateUser = async (req, res, next) => {
   // Extract token from incoming request authorization header
   const authHeader = req.headers.authorization;
-  const token = authHeader && authHeader.split(' ')[1]; // Splits "Bearer <token>"
+  const token = authHeader && authHeader.split(' ')[1]; 
 
   if (!token) {
     return res.status(401).json({ error: 'Authentication token missing' });
