@@ -1,19 +1,10 @@
-import { createClient } from '@supabase/supabase-js';
 import express from 'express';
 import dotenv from 'dotenv';
-
-// 1. Load environment variables IMMEDIATELY
-dotenv.config();
-
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
-
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error("Missing Supabase Environment Variables");
-}
-
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
+
+// 1. Load environment variables IMMEDIATELY before routes import
+dotenv.config();
 
 // 2. Import routes and middleware
 import authRoutes from './routes/auth.js';
@@ -41,18 +32,18 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-// 4. Standard Middleware
-app.use(cookieParser()); // Must be before auth routes to read cookies
+// 4. Standard Middleware (Must run before routes to parse incoming data)
+app.use(cookieParser()); 
 app.use(express.json());
-
 app.set('trust proxy', 1); 
 
-// 5. Request Logger (Helpful for debugging 404s)
+// 5. Request Logger
 app.use((req, res, next) => {
   console.log(`[${new Date().toLocaleTimeString()}] ${req.method} ${req.path}`);
   next();
 });
 
+// 6. Route Bindings
 app.use('/api/auth', authRoutes);
 app.use('/api/notes', authenticateUser, notesRoutes);
 
@@ -63,5 +54,4 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`>>> SERVER ACTIVE ON PORT ${PORT}`);
 });
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 export default app;

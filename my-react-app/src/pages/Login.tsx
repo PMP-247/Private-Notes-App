@@ -1,8 +1,6 @@
 import React, { useState, FormEvent } from 'react';
-import { supabase } from '../supabaseClient';
 import { Link } from 'react-router-dom';
 
-// ✅ No token argument — App.tsx handleAuthSuccess takes no parameters
 interface LoginProps {
   onAuthSuccess: () => void;
 }
@@ -12,6 +10,7 @@ const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
   const handleLogin = async (e: FormEvent) => {
@@ -20,26 +19,24 @@ const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
     setError(null);
 
     try {
-      // Step 1: Supabase signs the user in and returns a session token
-      const { data, error: authError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+      // Step 1: Send credentials straight to your Express backend
+      const response = await fetch(`${API_URL}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
       });
 
-      if (authError) throw authError;
-      if (!data.session) throw new Error('No session returned from Supabase');
-
-      // Step 2: Send token to backend — backend validates and sets the httpOnly cookie
-      const response = await fetch(`${API_URL}/api/auth/login`, {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ email, password }),
-});
+      const data = await response.json().catch(() => ({}));
 
       if (!response.ok) {
-        const body = await response.json().catch(() => ({}));
-        throw new Error(body.error || 'Failed to establish server session');
+        throw new Error(data.error || 'Failed to establish server session');
       }
+
+      // Step 2: Extract the explicit token and store it securely in localStorage
+      if (!data.token) {
+        throw new Error('No authentication token returned from the server');
+      }
+      localStorage.setItem('token', data.token);
 
       // Step 3: Tell App.tsx auth succeeded — it sets state and navigates to /notes
       onAuthSuccess();

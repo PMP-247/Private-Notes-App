@@ -1,82 +1,24 @@
-import express from 'express';
-// Note: We don't import a static supabase client here anymore.
-// We use the one attached to the request by our middleware.
+import { supabase } from '../supabaseClient.js';
 
-const router = express.Router();
+export const authenticateUser = async (req, res, next) => {
+  // Extract token from incoming request authorization header
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.split(' ')[1]; // Splits "Bearer <token>"
 
-/**
- * GET ALL NOTES
- */
-router.get('/', async (req, res) => {
-  try {
-    // 1. Use req.supabase (authenticated) instead of the static client
-    const { data, error } = await req.supabase
-      .from('notes')
-      .select('*')
-      .eq('user_id', req.user.id) 
-      .order('created_at', { ascending: false });
-
-    if (error) throw error;
-
-    // 2. Wrap in an object to match your frontend logic: { notes: [...] }
-    return res.json({ notes: data });
-  } catch (err) {
-    console.error('Fetch error:', err.message);
-    return res.status(500).json({ error: 'Failed to fetch notes' });
-  }
-});
-
-/**
- * CREATE A NEW NOTE
- */
-router.post('/', async (req, res) => {
-  const { title, content } = req.body;
-
-  if (!content) {
-    return res.status(400).json({ error: 'Content is required' });
+  if (!token) {
+    return res.status(401).json({ error: 'Authentication token missing' });
   }
 
   try {
-    const { data, error } = await req.supabase
-      .from('notes')
-      .insert([
-        { 
-          title: title || 'Untitled Note', 
-          content, 
-          user_id: req.user.id 
-        }
-      ])
-      .select();
+    const { data: { user }, error } = await supabase.auth.getUser(token);
 
-    if (error) throw error;
+    if (error || !user) {
+      return res.status(401).json({ error: 'Invalid or expired session' });
+    }
 
-    return res.status(201).json({ note: data[0] });
+    req.user = user;
+    next();
   } catch (err) {
-    console.error('Create error:', err.message);
-    return res.status(500).json({ error: 'Failed to create note' });
+    return res.status(401).json({ error: 'Unauthorized structural catch' });
   }
-});
-
-/**
- * DELETE A NOTE
- */
-router.delete('/:id', async (req, res) => {
-  const { id } = req.params;
-
-  try {
-    const { error } = await req.supabase
-      .from('notes')
-      .delete()
-      .eq('id', id)
-      .eq('user_id', req.user.id);
-
-    if (error) throw error;
-
-    return res.json({ message: 'Note deleted successfully' });
-  } catch (err) {
-    console.error('Delete error:', err.message);
-    return res.status(500).json({ error: 'Failed to delete note' });
-  }
-});
-
-export default router;
+};
