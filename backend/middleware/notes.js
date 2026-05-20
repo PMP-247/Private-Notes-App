@@ -21,4 +21,8 @@ export const authenticateUser = async (req, res, next) => {
   } catch (err) {
     return res.status(401).json({ error: 'Unauthorized structural catch' });
   }
+  return res.json({ 
+  user: data.user,
+  token: data.session.access_token 
+});
 };

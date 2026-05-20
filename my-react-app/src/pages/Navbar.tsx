@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '../supabaseClient';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
@@ -8,26 +7,33 @@ const Navbar = () => {
 
   useEffect(() => {
     const fetchProfile = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-       
-        const { data } = await supabase
-          .from('profiles')
-          .select('display_name')
-          .eq('id', user.id)
-          .single();
+      try {
+        const res = await fetch(`${API_URL}/api/auth/me`, {
+          method: 'GET',
+          credentials: 'include',
+        });
 
-        if (data?.display_name) setDisplayName(data.display_name.toUpperCase());
+        if (!res.ok) return;
+
+        const data = await res.json();
+        const user = data.user;
+
+        if (user?.user_metadata?.display_name) {
+          setDisplayName(user.user_metadata.display_name.toUpperCase());
+        } else if (user?.email) {
+          setDisplayName(user.email.toUpperCase());
+        }
+      } catch (err) {
+        console.error('Unable to load profile', err);
       }
     };
+
     fetchProfile();
   }, []);
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    // Clearing backend session
     await fetch(`${API_URL}/api/auth/logout`, { method: 'POST', credentials: 'include' });
-    window.location.href = "/login";
+    window.location.href = '/login';
   };
 
   return (

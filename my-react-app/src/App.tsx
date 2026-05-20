@@ -95,6 +95,7 @@ const AppRoutes: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    initAuth();
   }, [initAuth]);
 
   // ✅ No token argument — Login handles Supabase auth, backend owns the cookie

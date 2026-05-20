@@ -23,6 +23,7 @@ const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
       const response = await fetch(`${API_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ email, password }),
       });
 
@@ -32,13 +33,8 @@ const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
         throw new Error(data.error || 'Failed to establish server session');
       }
 
-      // Step 2: Extract the explicit token and store it securely in localStorage
-      if (!data.token) {
-        throw new Error('No authentication token returned from the server');
-      }
-      localStorage.setItem('token', data.token);
-
-      // Step 3: Tell App.tsx auth succeeded — it sets state and navigates to /notes
+      // Backend sets a secure HTTP-only session cookie
+      // Tell App.tsx auth succeeded — it sets state and navigates to /notes
       onAuthSuccess();
 
     } catch (err: unknown) {

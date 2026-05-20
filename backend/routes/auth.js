@@ -5,12 +5,17 @@ const router = express.Router();
 
 // REGISTER ROUTE
 router.post('/register', async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password, displayName } = req.body;
 
   try {
+    const signUpOptions = displayName
+      ? { data: { display_name: displayName } }
+      : undefined;
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
+      options: signUpOptions,
     });
 
     if (error) {
@@ -79,6 +84,17 @@ router.post('/login', async (req, res) => {
   }
 });
 
+// LOGOUT ROUTE
+router.post('/logout', (req, res) => {
+  res.clearCookie('sb-access-token', {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'none',
+  });
+
+  return res.json({ message: 'Logged out successfully' });
+});
+
 // CURRENT USER ROUTE
 router.get('/me', async (req, res) => {
   const token = req.cookies['sb-access-token'];
@@ -100,7 +116,10 @@ router.get('/me', async (req, res) => {
     });
   }
 
-  return res.json({ user });
+  return res.json({
+    user,
+    token,
+  });
 });
 
 export default router;

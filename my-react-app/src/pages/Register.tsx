@@ -1,6 +1,7 @@
 import { useState, FormEvent } from 'react';
-import { Link } from 'react-router-dom';
-import { supabase } from '../supabaseClient';
+import { Link, useNavigate } from 'react-router-dom';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
 const Register = () => {
   const [email, setEmail] = useState('');
@@ -10,42 +11,37 @@ const Register = () => {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  const navigate = useNavigate();
+
   const handleRegister = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
 
     if (password !== confirmPassword) {
-      setError("Passwords do not match");
+      setError('Passwords do not match');
       return;
     }
 
     setIsLoading(true);
 
     try {
-      const { data, error: signUpError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: { display_name: displayName },
-        },
+      const response = await fetch(`${API_URL}/api/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ email, password, displayName }),
       });
 
-      if (signUpError) throw signUpError;
+      const data = await response.json().catch(() => ({}));
 
-   
-      if (data.session) {
-        await fetch('http://127.0.0.1:5001/api/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token: data.session.access_token }),
-        });
-        
-       
-        window.location.replace("/notes");
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create account');
       }
+
+      navigate('/notes');
     } catch (err: unknown) {
       if (err instanceof Error) setError(err.message);
-      else setError("An unexpected error occurred");
+      else setError('An unexpected error occurred');
     } finally {
       setIsLoading(false);
     }
